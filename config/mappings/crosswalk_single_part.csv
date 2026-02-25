@@ -1,0 +1,11 @@
+output_template,output_sheet,output_column,required,source_priority,transform_rule,notes
+Single part,Single part,Manufacturer Part Number,yes,manufacturer_part_number,store_original_and_normalized,Canonical dedupe key
+Single part,Single part,Part Name,no,merged_product_name|source_description|scraped_name,prefer_source_then_scrape,
+Single part,Single part,Description,no,source_description|scraped_description,overwrite_when_blank_or_high_confidence,
+Single part,Single part,Manufacturer,no,source_manufacturer|sheet_name|filename_context,normalize_manufacturer_name,
+Single part,Single part,Category,no,sheet_name|merged_header|source_category,combine_context,
+Single part,Single part,Part Cost,yes,source_cost,parse_decimal,
+Single part,Single part,Part Price,yes,derived_from_markup,round_nearest_cent,Global markup profile
+Single part,Single part,Warranty,no,scraped_warranty|source_warranty,aggregate_all_warranties,
+Single part,Single part,Status,no,system,processed_or_manual_review,
+Single part,Single part,Status Reason,no,system,error_or_warning_text,

@@ -1,0 +1,14 @@
+output_template,output_sheet,output_column,required,source_priority,transform_rule,notes
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Manufacturer Part Number,yes,manufacturer_part_number,store_original_and_normalized,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Part Name,no,merged_product_name|source_description|scraped_name,prefer_source_then_scrape,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Description,no,source_description|scraped_description,overwrite_when_blank_or_high_confidence,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Part Cost,yes,source_cost,parse_decimal,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Part Price,yes,derived_from_markup,round_nearest_cent,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Labor Cost,no,user_form_or_profile_default,parse_decimal,Customer supplied
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Labor Rate,no,user_form_or_profile_default,parse_decimal,Customer supplied
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Labor Hours,no,user_manual_input,leave_blank_default,Customer manually enters
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Labor Price,no,derived_labor_rate_x_hours,round_nearest_cent,Only when labor hours present
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Total Price,no,derived_part_price_plus_labor_price,round_nearest_cent,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Warranty,no,scraped_warranty|source_warranty,aggregate_all_warranties,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Status,no,system,processed_or_manual_review,
+Bundle (1 part, 1 labor),Bundle (1 part, 1 labor),Status Reason,no,system,error_or_warning_text,

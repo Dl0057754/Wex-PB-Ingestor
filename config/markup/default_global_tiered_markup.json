@@ -1,0 +1,34 @@
+{
+  "profile_name": "Global Default Tiered Markup",
+  "currency": "USD",
+  "rounding": {
+    "mode": "nearest_cent"
+  },
+  "tiers": [
+    {
+      "order": 1,
+      "min_cost": 0.01,
+      "max_cost": 1.0,
+      "markup_percent": 400,
+      "enabled": true
+    },
+    {
+      "order": 2,
+      "min_cost": 1.01,
+      "max_cost": 5.0,
+      "markup_percent": 500,
+      "enabled": true
+    },
+    {
+      "order": 3,
+      "min_cost": 5.01,
+      "max_cost": null,
+      "markup_percent": 250,
+      "enabled": true
+    }
+  ],
+  "defaults": {
+    "labor_cost": null,
+    "labor_rate": null
+  }
+}
