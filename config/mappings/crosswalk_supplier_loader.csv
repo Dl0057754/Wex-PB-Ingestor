@@ -1,0 +1,14 @@
+output_template,output_sheet,output_column,required,source_priority,transform_rule,notes
+Supplier Loader,Sheet1,Manufacturer Part Number,yes,manufacturer_part_number,store_original_and_normalized,
+Supplier Loader,Sheet1,Part Name,no,merged_product_name|source_description|scraped_name,prefer_source_then_scrape,
+Supplier Loader,Sheet1,Description,no,source_description|scraped_description,overwrite_when_blank_or_high_confidence,
+Supplier Loader,Sheet1,Manufacturer,no,source_manufacturer|sheet_name|filename_context,normalize_manufacturer_name,
+Supplier Loader,Sheet1,Category,no,sheet_name|merged_header|source_category,combine_context,
+Supplier Loader,Sheet1,Part Cost,yes,source_cost,parse_decimal,
+Supplier Loader,Sheet1,Part Price,yes,derived_from_markup,round_nearest_cent,
+Supplier Loader,Sheet1,Warranty,no,scraped_warranty|source_warranty,aggregate_all_warranties,
+Supplier Loader,FORM,Labor Cost,no,user_form_or_profile_default,parse_decimal,If template workflow requires
+Supplier Loader,FORM,Labor Rate,no,user_form_or_profile_default,parse_decimal,If template workflow requires
+Supplier Loader,FORM,Labor Hours,no,user_manual_input,leave_blank_default,Manual by customer
+Supplier Loader,Sheet1,Status,no,system,processed_or_manual_review,
+Supplier Loader,Sheet1,Status Reason,no,system,error_or_warning_text,

@@ -1,0 +1,8 @@
+customer_name,source_file,completed_template,base_template,output_type,notes
+Gallatin,samples/distributor-books/Gallatin River All Pricing 9-15-25.xlsx,samples/completed-templates/Gallatin_Flat_Rate_Pricebook.xlsx,samples/base-templates/Single part single labor template.xlsx,bundle,Confirmed pair
+Hollowtop,samples/distributor-books/Hollowtop Heating All Pricing 9-15-25.xlsx,samples/completed-templates/Hollowtop Flat Rate Pricebook.xlsx,samples/base-templates/Single part single labor template.xlsx,bundle,Confirmed pair
+Kinzer,samples/distributor-books/Kinzer Air Glacier Supply Price Book 6-19-2025.xlsx,samples/completed-templates/Kinzer Price Book.xlsx,samples/base-templates/Single part template.xlsx,single_part,Malformed source expected; fallback importer required
+Temp Control,samples/distributor-books/temp Control Glacier Supply Price Book 6-17-2025.xlsx,samples/completed-templates/Temp_Control_Parts_Catalog.xlsx,samples/base-templates/Supplier Loader Template JUN2024.xlsx,supplier_loader,Malformed source expected; fallback importer required
+Carrier,samples/distributor-books/Carrier R454B_2025_TSM 1 7 2026.xlsx,,,user_selected,Output template chosen by user at runtime
+Bryant,samples/distributor-books/Bryant R454B_2025_TSM 1 7 2026 (1).xlsx,,,user_selected,Output template chosen by user at runtime
+Day & Night,samples/distributor-books/Day & Night R454b Price Pages Master TEMPLATE 5 5 2025.xlsx,,,user_selected,Output template chosen by user at runtime

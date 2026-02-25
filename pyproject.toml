@@ -1,0 +1,25 @@
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "pb-ingestor"
+version = "0.2.1"
+description = "Pricebook ingestion CLI"
+authors = ["Wex PB Ingestor <noreply@example.com>"]
+readme = "README.md"
+packages = [{ include = "pb_ingestor", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+openpyxl = ">=3.1.0"
+jsonschema = ">=4.0.0"
+requests = ">=2.31.0"
+beautifulsoup4 = ">=4.12.0"
+streamlit = ">=1.36.0"
+
+[tool.poetry.scripts]
+pb-ingestor = "pb_ingestor.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
