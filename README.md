@@ -1,10 +1,11 @@
-# Wex Pricebook Ingestor (v0.2)
+# Wex Pricebook Ingestor (v0.3)
 
 Runnable CLI for converting distributor files into:
 - normalized CSV output,
 - template-native workbook output (`.xlsx`),
 - QA summary JSON,
-- manual-review CSV.
+- manual-review CSV,
+- enrichment-enriched CSV from manufacturer websites.
 
 ## Install
 
@@ -41,7 +42,16 @@ pb-ingestor convert-all \
   --consolidated-qa out/qa/consolidated.json
 ```
 
-### 4) Validate QA JSON required keys
+### 4) Enrich converted CSV from manufacturer websites
+
+```bash
+pb-ingestor enrich out/converted/gallatin.csv \
+  --domains-config config/enrichment/manufacturer_domains.json \
+  --output-csv out/enriched/gallatin_enriched.csv \
+  --qa-json out/qa/gallatin_enrichment.json
+```
+
+### 5) Validate JSON against schema (full JSON Schema validation)
 
 ```bash
 pb-ingestor validate out/qa/gallatin.json --schema schemas/qa_run_report.schema.json
@@ -50,15 +60,21 @@ pb-ingestor validate out/qa/gallatin.json --schema schemas/qa_run_report.schema.
 ## Current capabilities
 
 - Standard `.xlsx` ingestion with visible-sheet processing and merged-cell value propagation.
-- Fallback parser for malformed files (CSV-style recovery attempt).
-- Basic embedded asset reference scanning (`jpg/png/pdf/docx`) surfaced in QA output.
+- Hardened fallback parser for malformed files with multi-strategy parsing (`csv`, `tsv`, `;`, `|`, fixed-width).
+- Embedded asset reference scanning (`jpg/png/pdf/docx`) surfaced in QA output.
 - Manufacturer part-number dedupe (`keep first`).
-- Global tiered markup profile support with nearest-cent rounding.
+- Global tiered markup profile support with nearest-cent rounding and overlap validation.
 - Template workbook writer that fills matching columns by header name.
 - Manual-review export for rows missing required data.
+- Website enrichment flow with manufacturer-domain allowlist and confidence/status fields.
+
+## Testing
+
+```bash
+pytest -q
+```
 
 ## Notes
 
 - This implementation intentionally avoids vendor APIs.
-- Enrichment currently provides manufacturer-site search URL hints (`Enrichment URL Hint`) as a manual/web-scrub starting point.
-- Deep scraping and advanced confidence scoring are planned follow-up enhancements.
+- Website enrichment is best-effort and should be reviewed in QA before final publishing.

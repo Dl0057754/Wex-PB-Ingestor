@@ -4,7 +4,7 @@ import csv
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from openpyxl import load_workbook
 
@@ -24,6 +24,7 @@ class IngestResult:
     mode: str
     errors: list[str]
     asset_refs: list[dict[str, str]]
+    parser_stage: str = "xlsx"
 
 
 def _normalize_header(value: Any, idx: int) -> str:
@@ -68,6 +69,39 @@ def _extract_asset_refs(raw: bytes) -> list[dict[str, str]]:
         seen.add(key)
         unique.append(r)
     return unique
+
+
+def _rows_from_delimited(text_lines: list[str], delimiter: str, source_file: str, stage: str) -> list[SourceRow]:
+    rows: list[SourceRow] = []
+    reader = csv.reader(text_lines, delimiter=delimiter)
+    header = None
+    for i, row in enumerate(reader, start=1):
+        if not row:
+            continue
+        if header is None:
+            header = [_normalize_header(v, idx + 1) for idx, v in enumerate(row)]
+            continue
+        vals = {header[idx] if idx < len(header) else f"col_{idx+1}": value for idx, value in enumerate(row)}
+        if not any(str(v).strip() for v in vals.values()):
+            continue
+        rows.append(SourceRow(source_file=source_file, source_sheet="Recovered Sheet 1", source_row_number=i, values=vals))
+    return rows
+
+
+def _rows_from_fixed_width(lines: Iterable[str], source_file: str) -> list[SourceRow]:
+    rows: list[SourceRow] = []
+    tokenized = []
+    for line in lines:
+        chunks = [c for c in re.split(r"\s{2,}", line.strip()) if c]
+        if len(chunks) >= 3:
+            tokenized.append(chunks)
+    if len(tokenized) < 2:
+        return rows
+    header = [_normalize_header(v, idx + 1) for idx, v in enumerate(tokenized[0])]
+    for i, vals in enumerate(tokenized[1:], start=2):
+        row = {header[idx] if idx < len(header) else f"col_{idx+1}": value for idx, value in enumerate(vals)}
+        rows.append(SourceRow(source_file=source_file, source_sheet="Recovered Sheet 1", source_row_number=i, values=row))
+    return rows
 
 
 def ingest_xlsx(path: str | Path) -> IngestResult:
@@ -121,7 +155,7 @@ def ingest_xlsx(path: str | Path) -> IngestResult:
                 )
             )
 
-    return IngestResult(rows=rows, mode="xlsx", errors=errors, asset_refs=asset_refs)
+    return IngestResult(rows=rows, mode="xlsx", errors=errors, asset_refs=asset_refs, parser_stage="openxml")
 
 
 def ingest_fallback(path: str | Path, pre_errors: list[str] | None = None, asset_refs: list[dict[str, str]] | None = None) -> IngestResult:
@@ -132,7 +166,7 @@ def ingest_fallback(path: str | Path, pre_errors: list[str] | None = None, asset
         asset_refs = _extract_asset_refs(raw)
 
     text = None
-    for enc in ("utf-8", "latin-1"):
+    for enc in ("utf-8", "latin-1", "cp1252"):
         try:
             text = raw.decode(enc)
             break
@@ -140,38 +174,27 @@ def ingest_fallback(path: str | Path, pre_errors: list[str] | None = None, asset
             continue
     if text is None:
         errors.append("fallback decode failed")
-        return IngestResult(rows=[], mode="fallback_failed", errors=errors, asset_refs=asset_refs)
+        return IngestResult(rows=[], mode="fallback_failed", errors=errors, asset_refs=asset_refs, parser_stage="decode")
 
-    sample = "\n".join(text.splitlines()[:20])
-    try:
-        dialect = csv.Sniffer().sniff(sample, delimiters=",;|\t")
-    except Exception:
-        dialect = csv.excel
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        errors.append("fallback had no non-empty lines")
+        return IngestResult(rows=[], mode="fallback_failed", errors=errors, asset_refs=asset_refs, parser_stage="empty")
 
-    reader = csv.reader(text.splitlines(), dialect=dialect)
-    header = None
-    for i, row in enumerate(reader, start=1):
-        if not row:
-            continue
-        if header is None:
-            header = [_normalize_header(v, idx + 1) for idx, v in enumerate(row)]
-            continue
-        vals = {header[idx] if idx < len(header) else f"col_{idx+1}": value for idx, value in enumerate(row)}
-        if not any(str(v).strip() for v in vals.values()):
-            continue
-        rows.append(
-            SourceRow(
-                source_file=Path(path).name,
-                source_sheet="Recovered Sheet 1",
-                source_row_number=i,
-                values=vals,
-                family_context=None,
-            )
-        )
+    attempts: list[tuple[str, list[SourceRow]]] = []
+    for delim in [",", "\t", ";", "|"]:
+        parsed = _rows_from_delimited(lines, delim, Path(path).name, stage=f"delim_{repr(delim)}")
+        attempts.append((f"delim_{repr(delim)}", parsed))
 
-    if not rows:
+    best_stage, best_rows = max(attempts, key=lambda item: len(item[1]))
+    if len(best_rows) < 2:
+        fw_rows = _rows_from_fixed_width(lines, Path(path).name)
+        if len(fw_rows) > len(best_rows):
+            best_rows = fw_rows
+            best_stage = "fixed_width"
+
+    if not best_rows:
         errors.append("fallback parser produced zero rows")
-        mode = "fallback_failed"
-    else:
-        mode = "fallback"
-    return IngestResult(rows=rows, mode=mode, errors=errors, asset_refs=asset_refs)
+        return IngestResult(rows=[], mode="fallback_failed", errors=errors, asset_refs=asset_refs, parser_stage="no_rows")
+
+    return IngestResult(rows=best_rows, mode="fallback", errors=errors, asset_refs=asset_refs, parser_stage=best_stage)

@@ -4,7 +4,10 @@ import argparse
 import json
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
 from .crosswalk import infer_base_template_path, infer_crosswalk_path, load_crosswalk, load_manifest
+from .enrichment import enrich_csv
 from .ingest import ingest_xlsx
 from .mapper import map_rows
 from .markup import MarkupProfile
@@ -14,6 +17,7 @@ from .output import write_manual_review_csv, write_normalized_csv, write_qa_json
 def _cmd_analyze(args: argparse.Namespace) -> int:
     result = ingest_xlsx(args.source)
     print(f"ingest_mode={result.mode}")
+    print(f"parser_stage={result.parser_stage}")
     print(f"rows_found={len(result.rows)}")
     print(f"asset_refs={len(result.asset_refs)}")
     if result.errors:
@@ -145,13 +149,28 @@ def _cmd_convert_all(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_enrich(args: argparse.Namespace) -> int:
+    qa = enrich_csv(
+        input_csv=args.input_csv,
+        output_csv=args.output_csv,
+        qa_json=args.qa_json,
+        domains_config=args.domains_config,
+        sleep_ms=args.sleep_ms,
+    )
+    print(f"wrote_enriched_csv={args.output_csv}")
+    print(f"wrote_enrichment_qa={args.qa_json}")
+    print(f"summary={qa['summary']}")
+    return 0
+
+
 def _cmd_validate(args: argparse.Namespace) -> int:
     schema = json.loads(Path(args.schema).read_text())
     payload = json.loads(Path(args.input).read_text())
-    required = schema.get("required", [])
-    missing = [k for k in required if k not in payload]
-    if missing:
-        raise SystemExit(f"validation_error=missing_required:{','.join(missing)}")
+    validator = Draft202012Validator(schema)
+    errors = sorted(validator.iter_errors(payload), key=lambda e: e.path)
+    if errors:
+        msg = "; ".join(f"{'.'.join(map(str, e.path)) or '<root>'}:{e.message}" for e in errors[:10])
+        raise SystemExit(f"validation_error={msg}")
     print("validation=ok")
     return 0
 
@@ -187,7 +206,15 @@ def build_parser() -> argparse.ArgumentParser:
     convert_all.add_argument("--consolidated-qa", default="out/qa/consolidated.json")
     convert_all.set_defaults(func=_cmd_convert_all)
 
-    validate_cmd = sub.add_parser("validate", help="Validate JSON required keys against a schema")
+    enrich = sub.add_parser("enrich", help="Enrich converted CSV with manufacturer website data")
+    enrich.add_argument("input_csv")
+    enrich.add_argument("--domains-config", default="config/enrichment/manufacturer_domains.json")
+    enrich.add_argument("--output-csv", default="out/enriched/enriched.csv")
+    enrich.add_argument("--qa-json", default="out/qa/enrichment.json")
+    enrich.add_argument("--sleep-ms", type=int, default=100)
+    enrich.set_defaults(func=_cmd_enrich)
+
+    validate_cmd = sub.add_parser("validate", help="Validate JSON against JSON schema")
     validate_cmd.add_argument("input")
     validate_cmd.add_argument("--schema", required=True)
     validate_cmd.set_defaults(func=_cmd_validate)

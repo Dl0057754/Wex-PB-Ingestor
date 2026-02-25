@@ -28,6 +28,7 @@ class MarkupTier:
 class MarkupProfile:
     def __init__(self, tiers: list[MarkupTier]) -> None:
         self.tiers = sorted(tiers, key=lambda t: t.order)
+        self.validate_tiers()
 
     @classmethod
     def from_file(cls, path: str | Path) -> "MarkupProfile":
@@ -43,6 +44,18 @@ class MarkupProfile:
             for i, t in enumerate(data["tiers"])
         ]
         return cls(tiers)
+
+    def validate_tiers(self) -> None:
+        enabled = [t for t in self.tiers if t.enabled]
+        if not enabled:
+            raise ValueError("At least one enabled markup tier is required")
+        previous_max: Optional[Decimal] = None
+        for idx, tier in enumerate(enabled):
+            if tier.max_cost is not None and tier.max_cost < tier.min_cost:
+                raise ValueError(f"Tier {idx+1} has max_cost < min_cost")
+            if previous_max is not None and tier.min_cost <= previous_max:
+                raise ValueError("Markup tiers overlap or are out of order")
+            previous_max = tier.max_cost
 
     def price_for_cost(self, cost: Decimal) -> Decimal:
         for tier in self.tiers:
