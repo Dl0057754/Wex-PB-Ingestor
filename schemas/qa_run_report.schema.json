@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wex-pb-ingestor/schemas/qa_run_report.schema.json",
+  "title": "QA Run Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "timestamp_utc",
+    "rows_total",
+    "rows_processed",
+    "rows_incomplete",
+    "rows_manual_review",
+    "rows_duplicates_ignored",
+    "files_processed_standard",
+    "files_processed_fallback",
+    "files_failed"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rows_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows_processed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows_incomplete": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows_manual_review": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows_duplicates_ignored": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "files_processed_standard": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "files_processed_fallback": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "files_failed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows_recovered_fallback": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows_manual_review_fallback": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "summary_text": {
+      "type": "string",
+      "description": "Human-readable summary like '400 processed / 100 incomplete'."
+    },
+    "file_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_name",
+          "status"
+        ],
+        "properties": {
+          "file_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processed",
+              "processed_fallback",
+              "failed"
+            ]
+          },
+          "rows_processed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rows_incomplete": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "asset_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asset_type",
+          "asset_name_or_ref"
+        ],
+        "properties": {
+          "asset_type": {
+            "type": "string"
+          },
+          "asset_name_or_ref": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
