@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -14,6 +15,36 @@ class MappedRow:
     row: dict[str, Any]
     status: str
     status_reason: str
+
+
+NON_BLOCKING_REQUIRED_COLUMNS = {"part cost", "part price"}
+CATEGORY_SHEET_TOKENS = {
+    "gas furnaces",
+    "fan coils & heat strips",
+    "fan coils",
+    "evap coils",
+    "air conditioners",
+    "heat pumps",
+    "accessories",
+    "mobile home approved",
+    "crossover systems",
+    "ductless single-zone",
+    "ductless multi-zone",
+    "unitary & crossover",
+    "single zone dls",
+    "ducted solutions",
+    "multi-zone dls",
+}
+BRAND_HINTS = {
+    "bryant": "Bryant",
+    "carrier": "Carrier",
+    "day & night": "Day & Night",
+    "day and night": "Day & Night",
+    "temp control": "Temp Control",
+    "kinzer": "Kinzer",
+    "gallatin": "Gallatin",
+    "hollowtop": "Hollowtop",
+}
 
 
 def _normalize_part_number(value: Any) -> str:
@@ -47,11 +78,38 @@ def _parse_cost(value: Any) -> Decimal | None:
         return None
 
 
+def _infer_brand_from_filename(source_file: str) -> str | None:
+    sf = source_file.lower()
+    for token, brand in BRAND_HINTS.items():
+        if token in sf:
+            return brand
+    return None
+
+
+def _infer_manufacturer(source: SourceRow) -> str:
+    explicit = _find_field(source, ["manufacturer", "mfr", "brand"])
+    if explicit:
+        return str(explicit).strip()
+
+    brand_from_file = _infer_brand_from_filename(source.source_file)
+    if brand_from_file:
+        return brand_from_file
+
+    sheet = (source.source_sheet or "").strip()
+    if sheet.lower() in CATEGORY_SHEET_TOKENS:
+        return ""
+    return sheet
+
+
 def _manufacturer_site_hint(manufacturer: str | None, part_number: str | None) -> str | None:
     if not manufacturer or not part_number:
         return None
     normalized = manufacturer.lower().replace("&", "and").replace(" ", "")
     return f"https://www.google.com/search?q=site:{normalized}.com+{part_number}"
+
+
+def _join_reason(prior: str, msg: str) -> str:
+    return f"{prior};{msg}" if prior else msg
 
 
 def map_rows(
@@ -83,8 +141,8 @@ def map_rows(
             seen_part_numbers.add(normalized)
 
         source_description = _find_field(source, ["description", "item description", "item desc", "name"])
-        source_manufacturer = _find_field(source, ["manufacturer", "mfr", "brand"]) or source.source_sheet
-        cost_val = _find_field(source, ["cost", "net cost", "price", "customer cost"])
+        source_manufacturer = _infer_manufacturer(source)
+        cost_val = _find_field(source, ["cost", "net cost", "price", "customer cost", "net", "nsp", "your cost", "dealer"])
         part_cost = _parse_cost(cost_val)
 
         out_row: dict[str, Any] = {
@@ -116,20 +174,21 @@ def map_rows(
                 out_row["Status"] = "manual_review"
                 out_row["Status Reason"] = f"markup_error:{exc}"
         else:
-            out_row["Status"] = "manual_review"
-            out_row["Status Reason"] = "missing_or_invalid_cost"
+            # Missing cost/price should not block row completion.
+            out_row["Status Reason"] = _join_reason(out_row["Status Reason"], "warning_missing_cost")
 
         if not part_number:
             out_row["Status"] = "manual_review"
-            prior = out_row["Status Reason"]
-            out_row["Status Reason"] = f"{prior};missing_part_number" if prior else "missing_part_number"
+            out_row["Status Reason"] = _join_reason(out_row["Status Reason"], "missing_part_number")
 
-        missing_required = [col for col in required_columns if out_row.get(col) in (None, "")]
-        if missing_required:
+        blocking_missing_required = [
+            col for col in required_columns
+            if col.strip().lower() not in NON_BLOCKING_REQUIRED_COLUMNS and out_row.get(col) in (None, "")
+        ]
+        if blocking_missing_required:
             out_row["Status"] = "manual_review"
-            prior = out_row["Status Reason"]
-            req_msg = "missing_required:" + ",".join(missing_required)
-            out_row["Status Reason"] = f"{prior};{req_msg}" if prior else req_msg
+            req_msg = "missing_required:" + ",".join(blocking_missing_required)
+            out_row["Status Reason"] = _join_reason(out_row["Status Reason"], req_msg)
 
         for cw in crosswalk:
             out_row.setdefault(cw.output_column, out_row.get(cw.output_column))
