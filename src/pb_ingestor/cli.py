@@ -9,6 +9,12 @@ from jsonschema import Draft202012Validator
 from .crosswalk import load_manifest
 from .ingest import ingest_xlsx
 from .pipeline import run_conversion, run_enrichment
+from .crosswalk import infer_base_template_path, infer_crosswalk_path, load_crosswalk, load_manifest
+from .enrichment import enrich_csv
+from .ingest import ingest_xlsx
+from .mapper import map_rows
+from .markup import MarkupProfile
+from .output import write_manual_review_csv, write_normalized_csv, write_qa_json, write_template_workbook
 
 
 def _cmd_analyze(args: argparse.Namespace) -> int:
@@ -22,6 +28,10 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
         for err in result.errors:
             print(f"- {err}")
     return 0
+
+
+def _resolve_template(template_type: str, template_path_arg: str | None) -> Path:
+    return Path(template_path_arg) if template_path_arg else infer_base_template_path(template_type)
 
 
 def _run_single_conversion(
@@ -47,9 +57,38 @@ def _run_single_conversion(
         manual_review_csv=manual_review_csv,
         crosswalk_path=crosswalk_arg,
         template_path=template_path_arg,
+    crosswalk_path = Path(crosswalk_arg) if crosswalk_arg else infer_crosswalk_path(template_type)
+    crosswalk = load_crosswalk(crosswalk_path)
+    markup = MarkupProfile.from_file(markup_profile_path)
+
+    ingest_result = ingest_xlsx(source)
+    mapped, counters = map_rows(
+        ingest_result.rows,
+        crosswalk,
+        markup,
         labor_cost_default=labor_cost_default,
         labor_rate_default=labor_rate_default,
     )
+
+    write_normalized_csv(mapped, output_csv)
+    write_template_workbook(mapped, _resolve_template(template_type, template_path_arg), output_workbook, crosswalk)
+    write_manual_review_csv(mapped, manual_review_csv)
+    write_qa_json(
+        qa_json,
+        counters,
+        ingest_result.mode,
+        ingest_result.errors,
+        source_file=Path(source).name,
+        asset_refs=ingest_result.asset_refs,
+    )
+
+    return {
+        "source": source,
+        "summary": counters,
+        "ingest_mode": ingest_result.mode,
+        "errors": ingest_result.errors,
+        "qa_json": qa_json,
+    }
 
 
 def _cmd_convert(args: argparse.Namespace) -> int:
@@ -125,6 +164,7 @@ def _cmd_convert_all(args: argparse.Namespace) -> int:
 
 def _cmd_enrich(args: argparse.Namespace) -> int:
     qa = run_enrichment(
+    qa = enrich_csv(
         input_csv=args.input_csv,
         output_csv=args.output_csv,
         qa_json=args.qa_json,
