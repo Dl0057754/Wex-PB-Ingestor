@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pb-ingestor"
+version = "0.1.0"
+description = "Pricebook ingestion CLI"
+requires-python = ">=3.10"
+dependencies = [
+  "openpyxl>=3.1.0"
+]
+
+[project.scripts]
+pb-ingestor = "pb_ingestor.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
