@@ -1,3 +1,6 @@
+# Wex Pricebook Ingestor (v0.4)
+
+Runnable tool for converting distributor files into:
 # Wex Pricebook Ingestor (v0.3)
 
 Runnable CLI for converting distributor files into:
@@ -7,12 +10,33 @@ Runnable CLI for converting distributor files into:
 - manual-review CSV,
 - enrichment-enriched CSV from manufacturer websites.
 
+You can run this as either:
+- CLI (`pb-ingestor ...`), or
+- Streamlit web app (`streamlit run app.py`).
+
 ## Install
 
 ```bash
 python -m pip install -e .
 ```
 
+## Run Web App (recommended)
+
+```bash
+streamlit run app.py --server.port 8501
+```
+
+Then open the local URL Streamlit prints (usually `http://localhost:8501`).
+
+In the app:
+1. Upload distributor workbook
+2. Select template type
+3. Set markup/labor defaults
+4. Click **Run Convert**
+5. Download output files
+6. Optionally click **Run Enrichment** and download enriched files
+
+## CLI Commands
 ## Commands
 
 ### 1) Analyze source file

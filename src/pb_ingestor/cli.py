@@ -6,6 +6,9 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from .crosswalk import load_manifest
+from .ingest import ingest_xlsx
+from .pipeline import run_conversion, run_enrichment
 from .crosswalk import infer_base_template_path, infer_crosswalk_path, load_crosswalk, load_manifest
 from .enrichment import enrich_csv
 from .ingest import ingest_xlsx
@@ -44,6 +47,16 @@ def _run_single_conversion(
     labor_cost_default: float | None = None,
     labor_rate_default: float | None = None,
 ) -> dict:
+    return run_conversion(
+        source=source,
+        template_type=template_type,
+        markup_profile_path=markup_profile_path,
+        output_csv=output_csv,
+        output_workbook=output_workbook,
+        qa_json=qa_json,
+        manual_review_csv=manual_review_csv,
+        crosswalk_path=crosswalk_arg,
+        template_path=template_path_arg,
     crosswalk_path = Path(crosswalk_arg) if crosswalk_arg else infer_crosswalk_path(template_type)
     crosswalk = load_crosswalk(crosswalk_path)
     markup = MarkupProfile.from_file(markup_profile_path)
@@ -150,6 +163,7 @@ def _cmd_convert_all(args: argparse.Namespace) -> int:
 
 
 def _cmd_enrich(args: argparse.Namespace) -> int:
+    qa = run_enrichment(
     qa = enrich_csv(
         input_csv=args.input_csv,
         output_csv=args.output_csv,
