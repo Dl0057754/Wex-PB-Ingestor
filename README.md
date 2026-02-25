@@ -1,6 +1,9 @@
 # Wex Pricebook Ingestor (v0.4)
 
 Runnable tool for converting distributor files into:
+# Wex Pricebook Ingestor (v0.3)
+
+Runnable CLI for converting distributor files into:
 - normalized CSV output,
 - template-native workbook output (`.xlsx`),
 - QA summary JSON,
@@ -34,6 +37,7 @@ In the app:
 6. Optionally click **Run Enrichment** and download enriched files
 
 ## CLI Commands
+## Commands
 
 ### 1) Analyze source file
 
@@ -76,6 +80,17 @@ pb-ingestor enrich out/converted/gallatin.csv \
 ```bash
 pb-ingestor validate out/qa/gallatin.json --schema schemas/qa_run_report.schema.json
 ```
+
+## Current capabilities
+
+- Standard `.xlsx` ingestion with visible-sheet processing and merged-cell value propagation.
+- Hardened fallback parser for malformed files with multi-strategy parsing (`csv`, `tsv`, `;`, `|`, fixed-width).
+- Embedded asset reference scanning (`jpg/png/pdf/docx`) surfaced in QA output.
+- Manufacturer part-number dedupe (`keep first`).
+- Global tiered markup profile support with nearest-cent rounding and overlap validation.
+- Template workbook writer that fills matching columns by header name.
+- Manual-review export for rows missing required data.
+- Website enrichment flow with manufacturer-domain allowlist and confidence/status fields.
 
 ## Testing
 

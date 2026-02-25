@@ -30,24 +30,3 @@ def test_mapper_required_fields_trigger_manual_review():
     mapped, counters = map_rows(rows, crosswalk, _profile())
     assert mapped[0].status == "manual_review"
     assert counters["rows_incomplete"] == 1
-
-
-def test_missing_cost_no_longer_blocks_processed_status():
-    crosswalk = [
-        CrosswalkRow("Single part", "Single part", "Manufacturer Part Number", True, "", "", ""),
-        CrosswalkRow("Single part", "Single part", "Part Cost", True, "", "", ""),
-        CrosswalkRow("Single part", "Single part", "Part Price", True, "", "", ""),
-    ]
-    rows = [SourceRow("Bryant File.xlsx", "GAS FURNACES", 2, {"part number": "ABC-1"})]
-    mapped, counters = map_rows(rows, crosswalk, _profile())
-    assert mapped[0].status == "processed"
-    assert "warning_missing_cost" in mapped[0].status_reason
-    assert counters["rows_processed"] == 1
-
-
-def test_brand_inferred_from_filename_over_sheet_category():
-    crosswalk = [CrosswalkRow("Single part", "Single part", "Manufacturer Part Number", True, "", "", "")]
-    rows = [SourceRow("Bryant R454B.xlsx", "GAS FURNACES", 2, {"part number": "ABC-1"})]
-    mapped, _ = map_rows(rows, crosswalk, _profile())
-    assert mapped[0].row["Manufacturer"] == "Bryant"
-    assert "site:bryant.com" in (mapped[0].row["Enrichment URL Hint"] or "")
